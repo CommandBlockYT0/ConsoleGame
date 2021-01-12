@@ -5,106 +5,18 @@ using System.Text;
 using System.Threading;
 using System.Drawing;
 using System.Windows.Input;
+using ConsoleApp.Classes;
 
 namespace ConsoleApp
 {
-    class Player
-    {
-        char icon = '♥';
-        public char Icon { get { return icon; } }
-        int x, y;
-        public int X { get { return x; } }
-        public int Y { get { return y; } }
-
-        string[] map;
-        public Player(int x, int y, ref string[] map)
-        {
-            this.x = x;
-            this.y = y;
-            this.map = map;
-            moveThread = new Thread(delegate ()
-            {
-                
-                ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-                int moveX = 0;
-                int moveY = 0;
-                switch (keyInfo.Key)
-                {
-                    case ConsoleKey.W:
-                        if (isGravity)
-                        {
-
-                        }
-                        else
-                        {
-                            moveY = 1;
-                        }
-                        break;
-                    case ConsoleKey.A:
-                        moveX = -1;
-                        break;
-                    case ConsoleKey.S:
-                        moveY = 1;
-                        break;
-                    case ConsoleKey.D:
-                        moveX = 1;
-                        break;
-                    case ConsoleKey.Spacebar:
-                        Jump();
-                        break;
-                    case ConsoleKey.Escape:
-                        break;
-                    default:
-                        break;
-                }
-                if (x + moveX >= 0 && x + moveX < 20)
-                    if (this.map[y][x + moveX] == '0')
-                        x += moveX;
-
-                if (y + moveY >= 0 && y + moveY < 20)
-                    if (this.map[y + moveY][x] == '0')
-                        y += moveY;
-
-            });
-            moveThread.Start();
-        }
-        bool isGravity = true;
-        bool isJump = false;
-        Thread moveThread;
-        bool threadEnded = true;
-        private void Jump()
-        {
-            new Thread(delegate ()
-            {
-                if (map[y - 1][x] == '0' && !isJump)
-                {
-                    isJump = true;
-                    y--;
-                    Thread.Sleep(200);
-                    if (map[y + 1][x] == '0')
-                        y++;
-                    isJump = false;
-                }
-            }).Start();
-        }
-        public void HandleGravity()
-        {
-            if (!isJump)
-            {
-                if (y + 1 < 20)
-                    if (map[y + 1][x] == '0')
-                        y++;
-            }
-        }
-        public void HandleMove()
-        {
-            HandleGravity();
-        }
-    }
     class Program
     {
         static void Main(string[] args)
         {
+            List<MovingLine> movingLines = new List<MovingLine>();
+
+
+
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             string[] map = new string[20];
 
@@ -128,9 +40,15 @@ namespace ConsoleApp
                         {
                             row += "1";
                         }
-                        else if (pixel.R == 255 && pixel.G == 0 && pixel.B == 0)
+                        else if (pixel.R == 0 && pixel.G == 0 && pixel.B == 255)
                         {
                             row += "2";
+                        }
+                        else if (pixel.R == 255)
+                        {
+                            row += "0";
+                            if (pixel.G >= bitmap.Width || pixel.B >= bitmap.Height) { Console.WriteLine($"Found incorrect moving pixel at X: {i}, Y: {j}! It cannot go to X: {pixel.G}, Y: {pixel.G}!"); while (true) { } }
+                            movingLines.Add(new MovingLine(j, i, pixel.G, pixel.B));
                         }
                         else if (pixel.R == 0 && pixel.G == 255 && pixel.B == 0)
                         {
@@ -158,7 +76,29 @@ namespace ConsoleApp
             Console.OutputEncoding = System.Text.Encoding.UTF8;
 
             Player player = new Player(playerX, playerY, ref map);
+            bool firstTime = true;
+            Timer t = new Timer(x =>
+            {
+                foreach (var line in movingLines)
+                {
+                    StringBuilder sbPrev = new StringBuilder(map[line.PrevY]);
+                    sbPrev[line.PrevX] = '0';
+                    map[line.PrevY] = sbPrev.ToString();
 
+                    StringBuilder sb = new StringBuilder(map[line.CurrentY]);
+                    sb[line.CurrentX] = '3';
+                    map[line.CurrentY] = sb.ToString();
+
+                    if ((player.X == line.PrevX && player.Y + 1 == line.PrevY))
+                    {
+                        player.X = line.CurrentX;
+                        player.Y = line.CurrentY - 1;
+                    }
+
+                    line.Step();
+
+                }
+            }, null, 0, 200);
             while (true)
             {
                 Console.SetCursorPosition(0, 0);
@@ -166,9 +106,10 @@ namespace ConsoleApp
                 {
                     for (int j = 0; j < bitmap.Height; j++)
                     {
-                        ConsoleColor color = ConsoleColor.White;
-                        if (map[i][j] == '1') color = ConsoleColor.Black;
-                        else if (map[i][j] == '2') color = ConsoleColor.Red;
+                        ConsoleColor color = ConsoleColor.Black;
+                        if (map[i][j] == '1') color = ConsoleColor.White;
+                        else if (map[i][j] == '2') color = ConsoleColor.Blue;
+                        else if (map[i][j] == '3') color = ConsoleColor.Red;
                         Console.BackgroundColor = color;
                         if (j == player.X && i == player.Y)
                         {
@@ -180,12 +121,26 @@ namespace ConsoleApp
                             Console.Write("  ");
                         }
                     }
+                    Console.ResetColor();
+                    Console.Write("|");
                     Console.WriteLine();
                 }
-                Console.Write("WASD - Move, G - Toggle Gravity, Space - Jump");
+                Console.ResetColor();
+                for (int i = 0; i < 41; i++)
+                {
+                    Console.Write("¯");
+                }
+                Console.WriteLine();
+                Console.Write("WASD - Move, Space - Jump, G - ");
+                if (firstTime)
+                {
+                    firstTime = false;
+                    Console.WriteLine("Off gravity ");
+                }
                 player.HandleMove();
             }
         }
+
 
         static void ex1()
         {
