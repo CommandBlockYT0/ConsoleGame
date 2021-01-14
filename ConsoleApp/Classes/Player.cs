@@ -28,7 +28,8 @@ namespace ConsoleApp.Classes
         {
             new Thread(delegate ()
             {
-                if ((map[y - 1][x] == '0' || map[y - 1][x] == '2') && !isJump && y > 0)
+                if (y > 0)
+                if ((map[y - 1][x] == '0' || map[y - 1][x] == '2') && !isJump)
                 {
                     isJump = true;
                     y--;

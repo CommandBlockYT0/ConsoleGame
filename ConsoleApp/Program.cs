@@ -23,6 +23,11 @@ namespace ConsoleApp
             int playerX = 0;
             int playerY = 0;
 
+            if (!System.IO.File.Exists("./map.bmp")) 
+            {
+                Console.WriteLine("The program could not find a map.");
+                while (true) { } 
+            }
             Bitmap bitmap = new Bitmap("./map.bmp");
             if (bitmap.Width == bitmap.Height && bitmap.Width == 20)
             {
